@@ -1,0 +1,94 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import butter, cheby1, firwin, lfilter, freqz
+
+# ----------------------------------------
+# 1. Definición de la señal de entrada
+# ----------------------------------------
+fs = 1000  # Frecuencia de muestreo
+t = np.linspace(0, 1.0, fs, endpoint=False)
+# Señal compuesta: 50 Hz + 200 Hz + ruido
+signal = np.sin(2 * np.pi * 50 * t) + 0.5*np.sin(2 * np.pi * 200 * t)
+signal += 0.5 * np.random.normal(size=t.shape)  # Ruido blanco
+
+# ----------------------------------------
+# 2. Diseño de filtros
+# ----------------------------------------
+
+# Filtro pasa bajos (Butterworth)
+def butter_lowpass(cutoff, fs, order=4):
+    nyq = fs / 2
+    normal_cutoff = cutoff / nyq
+    b, a = butter(order, normal_cutoff, btype='low')
+    return b, a
+
+# Filtro pasa altos (Butterworth)
+def butter_highpass(cutoff, fs, order=4):
+    nyq = fs / 2
+    normal_cutoff = cutoff / nyq
+    b, a = butter(order, normal_cutoff, btype='high')
+    return b, a
+
+# Filtro pasa bandas (Butterworth)
+def butter_bandpass(lowcut, highcut, fs, order=4):
+    nyq = fs / 2
+    low = lowcut / nyq
+    high = highcut / nyq
+    b, a = butter(order, [low, high], btype='band')
+    return b, a
+
+# Filtro FIR pasa bajos
+def fir_lowpass(cutoff, fs, numtaps=101):
+    nyq = fs / 2
+    return firwin(numtaps, cutoff/nyq, window='hamming')
+
+# ----------------------------------------
+# 3. Aplicación de los filtros
+# ----------------------------------------
+
+# Aplicamos filtros
+b_lp, a_lp = butter_lowpass(100, fs)
+b_hp, a_hp = butter_highpass(100, fs)
+b_bp, a_bp = butter_bandpass(40, 100, fs)
+
+filtered_lp = lfilter(b_lp, a_lp, signal)
+filtered_hp = lfilter(b_hp, a_hp, signal)
+filtered_bp = lfilter(b_bp, a_bp, signal)
+
+# FIR filter
+fir_coeff = fir_lowpass(100, fs)
+filtered_fir = lfilter(fir_coeff, [1.0], signal)
+
+# ----------------------------------------
+# 4. Visualización
+# ----------------------------------------
+
+plt.figure(figsize=(14, 10))
+
+plt.subplot(5, 1, 1)
+plt.plot(t, signal)
+plt.title("Señal original (con ruido)")
+plt.grid()
+
+plt.subplot(5, 1, 2)
+plt.plot(t, filtered_lp)
+plt.title("Filtro Pasa Bajos (Butterworth)")
+plt.grid()
+
+plt.subplot(5, 1, 3)
+plt.plot(t, filtered_hp)
+plt.title("Filtro Pasa Altos (Butterworth)")
+plt.grid()
+
+plt.subplot(5, 1, 4)
+plt.plot(t, filtered_bp)
+plt.title("Filtro Pasa Bandas (Butterworth)")
+plt.grid()
+
+plt.subplot(5, 1, 5)
+plt.plot(t, filtered_fir)
+plt.title("Filtro FIR Pasa Bajos (ventana Hamming)")
+plt.grid()
+
+plt.tight_layout()
+plt.show()
